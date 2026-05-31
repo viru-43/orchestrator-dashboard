@@ -1,65 +1,69 @@
-import Image from "next/image";
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Loading } from '@carbon/react';
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to dashboard on load
+    router.push('/dashboard');
+  }, [router]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 'calc(100vh - 200px)',
+        padding: '2rem',
+      }}>
+        <div style={{ textAlign: 'center' }} className="animate-fade-in">
+          <div style={{
+            marginBottom: '2rem',
+            display: 'inline-flex',
+            padding: '1.5rem',
+            borderRadius: '50%',
+            background: 'var(--cds-layer-01)',
+            border: '2px solid var(--cds-border-subtle-01)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          }}>
+            <svg width="64" height="64" viewBox="0 0 32 32" fill="none">
+              <path
+                d="M16 2L4 8v8c0 7.732 5.373 14.988 12 16.708 6.627-1.72 12-8.976 12-16.708V8L16 2z"
+                fill="var(--cds-interactive-01)"
+              />
+              <path
+                d="M16 8L10 11v4c0 3.866 2.686 7.494 6 8.354 3.314-.86 6-4.488 6-8.354v-4l-6-3z"
+                fill="var(--cds-background)"
+              />
+            </svg>
+          </div>
+          
+          <h1 style={{
+            fontSize: '3rem',
+            fontWeight: 600,
+            marginBottom: '1rem',
+            color: 'var(--cds-text-primary)',
+            letterSpacing: '-0.02em',
+          }}>
+            Orchestrator Dashboard
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          
+          <p style={{
+            fontSize: '1.125rem',
+            marginBottom: '2rem',
+            color: 'var(--cds-text-secondary)',
+          }}>
+            Redirecting to dashboard...
           </p>
+          
+          <Loading withOverlay={false} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
   );
 }
+
+// Made with Bob

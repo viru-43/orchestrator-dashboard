@@ -1,0 +1,354 @@
+// Import Carbon Design System CSS (pre-compiled, no SCSS issues)
+@import '@carbon/styles/css/styles.css';
+
+/* ============================================
+   MODERN DESIGN SYSTEM
+   ============================================ */
+
+:root {
+  // Spacing scale
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  
+  // Border radius
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  
+  // Transitions
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+  line-height: 1.5;
+}
+
+/* ============================================
+   CARBON COMPONENT OVERRIDES
+   ============================================ */
+
+// Tiles - Modern card styling
+.cds--tile {
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--cds-border-subtle-02);
+  }
+}
+
+// Buttons - Enhanced styling
+.cds--btn {
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all var(--transition-base);
+  
+  &--primary {
+    background: var(--cds-button-primary);
+    
+    &:hover {
+      background: var(--cds-button-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  &--secondary {
+    border-width: 1.5px;
+    
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// Tags - Refined styling
+.cds--tag {
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+// Data Tables - Professional styling
+.cds--data-table-container {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--cds-border-subtle-01);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.cds--data-table {
+  thead {
+    background: var(--cds-layer-02);
+  }
+  
+  th {
+    background: var(--cds-layer-02);
+    color: var(--cds-text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--cds-border-subtle-01);
+  }
+  
+  td {
+    border-bottom: 1px solid var(--cds-border-subtle-00);
+  }
+  
+  tbody tr {
+    transition: all var(--transition-fast);
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--cds-interactive-01);
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+    
+    &:hover {
+      background: var(--cds-layer-hover-01);
+      
+      &::before {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+// Side Navigation - Enhanced styling
+.cds--side-nav {
+  background: var(--cds-layer-01);
+  border-right: 1px solid var(--cds-border-subtle-01);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  
+  &__link {
+    border-radius: var(--radius-md);
+    margin: 4px 12px;
+    padding: 12px 16px;
+    transition: all var(--transition-fast);
+    font-weight: 500;
+    color: var(--cds-text-primary) !important;
+    
+    &:hover {
+      background: var(--cds-layer-hover-01);
+      color: var(--cds-text-primary) !important;
+    }
+    
+    &--current,
+    &[aria-current="page"] {
+      background: var(--cds-layer-selected-01);
+      border-left: 3px solid var(--cds-interactive-01);
+      font-weight: 600;
+      color: var(--cds-text-primary) !important;
+      
+      .cds--side-nav__icon {
+        fill: var(--cds-interactive-01);
+      }
+    }
+  }
+  
+  &__link-text {
+    color: var(--cds-text-primary) !important;
+  }
+  
+  &__icon {
+    transition: fill var(--transition-fast);
+    fill: var(--cds-icon-primary) !important;
+  }
+}
+
+// Search Input
+.cds--search-input {
+  background: var(--cds-field-01);
+  border: 1.5px solid var(--cds-border-subtle-01);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  
+  &:focus {
+    border-color: var(--cds-focus);
+    box-shadow: 0 0 0 2px var(--cds-focus);
+  }
+}
+
+// Dropdown
+.cds--dropdown {
+  background: var(--cds-field-01);
+  border: 1.5px solid var(--cds-border-subtle-01);
+  border-radius: var(--radius-md);
+  
+  &:hover {
+    background: var(--cds-field-hover-01);
+  }
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cds-layer-01);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cds-border-subtle-02);
+  border-radius: var(--radius-sm);
+  
+  &:hover {
+    background: var(--cds-border-strong-01);
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.card {
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: all var(--transition-base);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+  
+  .cds--tile,
+  .card {
+    padding: 1rem;
+  }
+}
+
+// Made with Bob
+
+
+/* ============================================
+   THEME SWITCHING SUPPORT
+   ============================================ */
+
+/* Light theme overrides for Carbon Design System */
+[data-carbon-theme='white'] {
+  --cds-background: #ffffff;
+  --cds-layer-01: #f4f4f4;
+  --cds-layer-02: #ffffff;
+  --cds-layer-03: #f4f4f4;
+  --cds-field-01: #f4f4f4;
+  --cds-field-02: #ffffff;
+  --cds-field-hover-01: #e8e8e8;
+  --cds-border-subtle-00: #e0e0e0;
+  --cds-border-subtle-01: #c6c6c6;
+  --cds-border-subtle-02: #e0e0e0;
+  --cds-border-strong-01: #8d8d8d;
+  --cds-text-primary: #161616;
+  --cds-text-secondary: #525252;
+  --cds-text-placeholder: #a8a8a8;
+  --cds-text-on-color: #ffffff;
+  --cds-text-helper: #6f6f6f;
+  --cds-text-error: #da1e28;
+  --cds-link-primary: #0f62fe;
+  --cds-link-secondary: #0043ce;
+  --cds-icon-primary: #161616;
+  --cds-icon-secondary: #525252;
+  --cds-icon-on-color: #ffffff;
+  --cds-button-primary: #0f62fe;
+  --cds-button-primary-hover: #0353e9;
+  --cds-button-primary-active: #002d9c;
+  --cds-button-secondary: #393939;
+  --cds-button-secondary-hover: #4c4c4c;
+  --cds-button-tertiary: #0f62fe;
+  --cds-button-tertiary-hover: #0353e9;
+  --cds-button-danger-primary: #da1e28;
+  --cds-button-danger-secondary: #da1e28;
+  --cds-interactive-01: #0f62fe;
+  --cds-interactive-02: #393939;
+  --cds-interactive-03: #0f62fe;
+  --cds-interactive-04: #0f62fe;
+  --cds-layer-hover-01: #e8e8e8;
+  --cds-layer-hover-02: #e8e8e8;
+  --cds-layer-hover-03: #e8e8e8;
+  --cds-layer-selected-01: #e0e0e0;
+  --cds-layer-selected-02: #e0e0e0;
+  --cds-layer-selected-03: #e0e0e0;
+  --cds-layer-selected-hover-01: #d1d1d1;
+  --cds-layer-selected-hover-02: #d1d1d1;
+  --cds-layer-selected-hover-03: #d1d1d1;
+  --cds-focus: #0f62fe;
+  --cds-focus-inset: #ffffff;
+  --cds-focus-inverse: #ffffff;
+}
+
+/* Dark theme (g100) - default, already defined by Carbon */
+[data-carbon-theme='g100'] {
+  /* Carbon's default g100 theme variables are already loaded */
+}

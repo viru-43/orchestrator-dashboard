@@ -1,0 +1,27 @@
+// Import Carbon React styles using CSS
+@import '@carbon/react/css/index.css';
+
+// Custom security-specific tokens
+:root {
+  // Security severity colors
+  --security-critical: #da1e28;
+  --security-high: #ff832b;
+  --security-medium: #f1c21b;
+  --security-low: #0f62fe;
+  --security-info: #4589ff;
+  
+  // Agent status colors
+  --agent-running: #0f62fe;
+  --agent-complete: #24a148;
+  --agent-pending: #8d8d8d;
+  --agent-error: #da1e28;
+  --agent-warning: #f1c21b;
+  
+  // Workflow stage colors
+  --stage-active: #0f62fe;
+  --stage-complete: #24a148;
+  --stage-pending: #525252;
+  --stage-error: #da1e28;
+}
+
+// Made with Bob
