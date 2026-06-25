@@ -14,6 +14,7 @@ import {
   Settings,
   Light,
   Asleep,
+  Time,
 } from '@carbon/icons-react';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -33,6 +34,7 @@ export function Navigation() {
     { href: '/dashboard', label: 'Dashboard', icon: Dashboard },
     { href: '/agents', label: 'Agents', icon: Bot },
     { href: '/workflows', label: 'Workflows', icon: Flow },
+    { href: '/scheduled', label: 'Scheduled', icon: Time },
     { href: '/pull-requests', label: 'Pull Requests', icon: DocumentTasks },
     { href: '/vulnerabilities', label: 'Vulnerabilities', icon: Security },
     { href: '/settings', label: 'Settings', icon: Settings },

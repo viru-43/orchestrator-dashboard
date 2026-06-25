@@ -1,54 +1,26 @@
 'use client';
 
-import { 
-  Button, 
-  DataTable, 
-  Table, 
-  TableHead, 
-  TableRow, 
-  TableHeader, 
-  TableBody, 
-  TableCell, 
+import { useEffect, useState } from 'react';
+import {
+  Button,
+  DataTable,
+  Table,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
   Tag,
   Grid,
   Column,
   Tile,
+  InlineLoading,
+  InlineNotification,
 } from '@carbon/react';
 import { Add, Chemistry, CheckmarkFilled, InProgress, WarningAlt, Time, Security } from '@carbon/icons-react';
 import Link from 'next/link';
-
-const mockWorkflows = [
-  {
-    id: '20260530T140740',
-    repo: 'owner/vulnerable-repo',
-    branch: 'main',
-    status: 'completed',
-    startTime: '2026-05-30T14:07:40Z',
-    duration: '4m 32s',
-    vulnerabilities: 3,
-    fixed: 3,
-  },
-  {
-    id: '20260530T135713',
-    repo: 'owner/test-app',
-    branch: 'develop',
-    status: 'running',
-    startTime: '2026-05-30T13:57:13Z',
-    duration: '2m 15s',
-    vulnerabilities: 5,
-    fixed: 2,
-  },
-  {
-    id: '20260530T133559',
-    repo: 'owner/backend-api',
-    branch: 'main',
-    status: 'failed',
-    startTime: '2026-05-30T13:35:59Z',
-    duration: '1m 45s',
-    vulnerabilities: 2,
-    fixed: 0,
-  },
-];
+import { getWorkflows, type Workflow } from '@/lib/api';
 
 const getStatusTag = (status: string) => {
   switch (status) {
@@ -63,103 +35,116 @@ const getStatusTag = (status: string) => {
   }
 };
 
+function formatDuration(startedAt: string | null, completedAt: string | null): string {
+  if (!startedAt) return '—';
+  const end = completedAt ? new Date(completedAt) : new Date();
+  const secs = Math.round((end.getTime() - new Date(startedAt).getTime()) / 1000);
+  if (secs < 60) return `${secs}s`;
+  return `${Math.floor(secs / 60)}m ${secs % 60}s`;
+}
+
 export default function WorkflowsPage() {
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getWorkflows(50)
+      .then((res) => {
+        setWorkflows(res.workflows);
+        setTotal(res.total);
+      })
+      .catch((err) => setError(String(err)))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const running = workflows.filter((w) => w.status === 'running').length;
+  const completed = workflows.filter((w) => w.status === 'completed').length;
+  const failed = workflows.filter((w) => w.status === 'failed').length;
+
+  const summary = [
+    { label: 'Total Workflows', value: total },
+    { label: 'Running', value: running },
+    { label: 'Completed', value: completed },
+    { label: 'Failed', value: failed },
+  ];
+
   const headers = [
     { key: 'repo', header: 'Repository' },
     { key: 'branch', header: 'Branch' },
     { key: 'duration', header: 'Duration' },
-    { key: 'vulnerabilities', header: 'Vulnerabilities' },
+    { key: 'vulnerabilities', header: 'Findings Fixed' },
     { key: 'status', header: 'Status' },
   ];
 
-  const rows = mockWorkflows.map((workflow) => ({
-    id: workflow.id,
-    repo: workflow.repo,
-    branch: workflow.branch,
-    duration: workflow.duration,
-    vulnerabilities: `${workflow.fixed}/${workflow.vulnerabilities}`,
-    status: workflow.status,
+  const rows = workflows.map((wf) => ({
+    id: wf.id,
+    repo: wf.repo_url,
+    branch: wf.branch,
+    duration: formatDuration(wf.started_at, wf.completed_at),
+    vulnerabilities: `${wf.total_remediated}/${wf.total_findings}`,
+    status: wf.status,
   }));
 
-  const summary = [
-    { label: 'Total Workflows', value: '3', color: 'blue' },
-    { label: 'Running', value: '1', color: 'blue' },
-    { label: 'Completed', value: '1', color: 'green' },
-    { label: 'Failed', value: '1', color: 'red' },
-  ];
-
   return (
-    
-      <div style={{ padding: '2rem' }}>
-        {/* Header */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'flex-start',
-          marginBottom: '2rem',
-        }}>
-          <div>
-            <h1 style={{ 
-              fontSize: '2rem', 
-              fontWeight: 600, 
-              marginBottom: '0.5rem',
-              color: 'var(--cds-text-primary)',
-            }}>
-              Workflows
-            </h1>
-            <p style={{ 
-              fontSize: '0.875rem', 
-              color: 'var(--cds-text-secondary)',
-            }}>
-              Monitor and manage security remediation workflows
-            </p>
-          </div>
-          <Link href="/workflows/execute">
-            <Button
-              kind="primary"
-              size="md"
-              renderIcon={Add}
-            >
-              New Workflow
-            </Button>
-          </Link>
+    <div style={{ padding: '2rem' }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem',
+      }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--cds-text-primary)' }}>
+            Workflows
+          </h1>
+          <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+            Monitor and manage security remediation workflows
+          </p>
         </div>
+        <Link href="/workflows/execute">
+          <Button kind="primary" size="md" renderIcon={Add}>New Workflow</Button>
+        </Link>
+      </div>
 
-        {/* Summary Cards */}
-        <Grid narrow style={{ marginBottom: '2rem' }}>
-          {summary.map((item, index) => (
-            <Column key={index} sm={4} md={2} lg={4}>
-              <Tile style={{
-                textAlign: 'center',
-                padding: '1.5rem 1rem',
-              }}>
-                <div style={{ 
-                  fontSize: '2rem', 
-                  fontWeight: 600,
-                  color: 'var(--cds-text-primary)',
-                  marginBottom: '0.25rem',
-                }}>
-                  {item.value}
-                </div>
-                <div style={{ 
-                  fontSize: '0.875rem',
-                  color: 'var(--cds-text-secondary)',
-                }}>
-                  {item.label}
-                </div>
-              </Tile>
-            </Column>
-          ))}
-        </Grid>
+      {/* Summary Cards */}
+      <Grid narrow style={{ marginBottom: '2rem' }}>
+        {summary.map((item, index) => (
+          <Column key={index} sm={4} md={2} lg={4}>
+            <Tile style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
+              <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--cds-text-primary)', marginBottom: '0.25rem' }}>
+                {item.value}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+                {item.label}
+              </div>
+            </Tile>
+          </Column>
+        ))}
+      </Grid>
 
-        {/* Workflows Table */}
+      {loading && (
+        <div style={{ padding: '2rem', display: 'flex', justifyContent: 'center' }}>
+          <InlineLoading description="Loading workflows…" />
+        </div>
+      )}
+
+      {error && (
+        <InlineNotification
+          kind="error"
+          title="Could not load workflows"
+          subtitle={error}
+          hideCloseButton
+        />
+      )}
+
+      {!loading && !error && (
         <DataTable rows={rows} headers={headers}>
-          {({ rows, headers, getTableProps, getHeaderProps, getRowProps, getTableContainerProps }) => (
-            <div {...getTableContainerProps()}>
+          {({ rows: tableRows, headers: tableHeaders, getTableProps, getHeaderProps, getRowProps, getTableContainerProps }) => (
+            <TableContainer {...getTableContainerProps()}>
               <Table {...getTableProps()}>
                 <TableHead>
                   <TableRow>
-                    {headers.map((header) => (
+                    {tableHeaders.map((header) => (
                       <TableHeader {...getHeaderProps({ header })} key={header.key}>
                         {header.header}
                       </TableHeader>
@@ -167,101 +152,66 @@ export default function WorkflowsPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {rows.map((row, index) => {
-                    const workflow = mockWorkflows[index];
+                  {tableRows.map((row, index) => {
+                    const wf = workflows[index];
+                    const repoLabel = wf.repo_url.replace('https://github.com/', '');
                     return (
                       <TableRow {...getRowProps({ row })} key={row.id}>
                         <TableCell>
                           <Link
-                            href={`/workflows/${workflow.id}`}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '1rem',
-                              textDecoration: 'none',
-                            }}
+                            href={`/workflows/${wf.id}`}
+                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}
                           >
                             <div style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '8px',
+                              width: '36px', height: '36px', borderRadius: '8px',
                               background: 'var(--cds-layer-accent-01)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
                               <Chemistry size={20} />
                             </div>
                             <div>
-                              <div style={{ 
-                                fontWeight: 500,
-                                color: 'var(--cds-text-primary)',
-                              }}>
-                                {workflow.repo}
+                              <div style={{ fontWeight: 500, color: 'var(--cds-text-primary)' }}>
+                                {repoLabel}
                               </div>
-                              <div style={{ 
-                                fontSize: '0.75rem',
-                                fontFamily: 'IBM Plex Mono, monospace',
-                                color: 'var(--cds-text-secondary)',
+                              <div style={{
+                                fontSize: '0.75rem', fontFamily: 'IBM Plex Mono, monospace', color: 'var(--cds-text-secondary)',
                               }}>
-                                ID: {workflow.id}
+                                {wf.id.slice(0, 24)}
                               </div>
                             </div>
                           </Link>
                         </TableCell>
                         <TableCell>
-                          <Tag type="blue" size="sm">
-                            {workflow.branch}
-                          </Tag>
+                          <Tag type="blue" size="sm">{wf.branch}</Tag>
                         </TableCell>
                         <TableCell>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.5rem',
-                          }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Time size={16} style={{ color: 'var(--cds-text-secondary)' }} />
-                            <span style={{ 
-                              fontFamily: 'IBM Plex Mono, monospace',
-                              fontSize: '0.875rem',
-                            }}>
-                              {workflow.duration}
+                            <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem' }}>
+                              {formatDuration(wf.started_at, wf.completed_at)}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.5rem',
-                          }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Security size={16} style={{ color: 'var(--cds-text-secondary)' }} />
-                            <span style={{ 
-                              fontFamily: 'IBM Plex Mono, monospace',
-                              fontSize: '0.875rem',
-                            }}>
-                              <span style={{ color: 'var(--cds-support-success)' }}>
-                                {workflow.fixed}
-                              </span>
+                            <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem' }}>
+                              <span style={{ color: 'var(--cds-support-success)' }}>{wf.total_remediated}</span>
                               <span style={{ color: 'var(--cds-text-secondary)' }}>/</span>
-                              {workflow.vulnerabilities}
+                              {wf.total_findings}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {getStatusTag(workflow.status)}
-                        </TableCell>
+                        <TableCell>{getStatusTag(wf.status)}</TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-            </div>
+            </TableContainer>
           )}
         </DataTable>
-      </div>
-    
+      )}
+    </div>
   );
 }
-
-// Made with Bob

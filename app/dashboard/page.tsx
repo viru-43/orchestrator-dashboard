@@ -1,10 +1,10 @@
 'use client';
 
-import { 
-  Grid, 
+import { useEffect, useState } from 'react';
+import {
+  Grid,
   Column,
   Tile,
-  ProgressBar,
   Tag,
   Button,
   StructuredListWrapper,
@@ -12,199 +12,156 @@ import {
   StructuredListRow,
   StructuredListCell,
   StructuredListBody,
+  InlineLoading,
+  InlineNotification,
 } from '@carbon/react';
-import { 
+import {
   Activity,
   CheckmarkFilled,
-  WarningAlt,
   ErrorFilled,
   ArrowRight,
   Renew,
   Time,
+  Security,
+  PullRequest,
 } from '@carbon/icons-react';
+import Link from 'next/link';
+import {
+  getDashboardMetrics,
+  getWorkflows,
+  type DashboardMetrics,
+  type Workflow,
+} from '@/lib/api';
+
+function formatDuration(startedAt: string | null, completedAt: string | null): string {
+  if (!startedAt) return '—';
+  const end = completedAt ? new Date(completedAt) : new Date();
+  const secs = Math.round((end.getTime() - new Date(startedAt).getTime()) / 1000);
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}m ${s}s`;
+}
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return '—';
+  const diff = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+const STATUS_TAG: Record<string, { type: 'green' | 'blue' | 'red' | 'gray'; label: string }> = {
+  completed: { type: 'green', label: 'Completed' },
+  running: { type: 'blue', label: 'Running' },
+  failed: { type: 'red', label: 'Failed' },
+};
 
 export default function DashboardPage() {
-  const metrics = [
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([getDashboardMetrics(), getWorkflows(5)])
+      .then(([m, w]) => {
+        setMetrics(m);
+        setWorkflows(w.workflows);
+      })
+      .catch((err) => setError(String(err)))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '3rem', display: 'flex', justifyContent: 'center' }}>
+        <InlineLoading description="Loading dashboard…" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '2rem' }}>
+        <InlineNotification
+          kind="error"
+          title="Could not load dashboard"
+          subtitle={error}
+          hideCloseButton
+        />
+      </div>
+    );
+  }
+
+  const metricCards = [
     {
-      title: 'Active Workflows',
-      value: '12',
-      change: '+3',
-      trend: 'up',
+      title: 'Running Workflows',
+      value: String(metrics?.running_workflows ?? 0),
       icon: Activity,
       color: 'blue',
-      description: 'Currently running',
+      description: 'Currently in progress',
     },
     {
       title: 'Success Rate',
-      value: '94.2%',
-      change: '+2.1%',
-      trend: 'up',
+      value: `${metrics?.success_rate ?? 0}%`,
       icon: CheckmarkFilled,
       color: 'green',
-      description: 'Last 30 days',
+      description: 'All time',
     },
     {
-      title: 'Pending Tasks',
-      value: '8',
-      change: '-2',
-      trend: 'down',
-      icon: Time,
-      color: 'orange',
-      description: 'Awaiting execution',
+      title: 'Open PRs',
+      value: String(metrics?.open_prs ?? 0),
+      icon: PullRequest,
+      color: 'purple',
+      description: 'Awaiting review',
     },
     {
-      title: 'Failed Jobs',
-      value: '3',
-      change: '+1',
-      trend: 'up',
-      icon: ErrorFilled,
+      title: 'Total Findings',
+      value: String(metrics?.total_findings ?? 0),
+      icon: Security,
       color: 'red',
-      description: 'Requires attention',
+      description: `${metrics?.total_fixed ?? 0} fixed`,
     },
   ];
-
-  const recentActivity = [
-    {
-      id: 1,
-      workflow: 'Data Processing Pipeline',
-      status: 'completed',
-      time: '2 minutes ago',
-      duration: '3m 24s',
-    },
-    {
-      id: 2,
-      workflow: 'ML Model Training',
-      status: 'running',
-      time: '5 minutes ago',
-      duration: '12m 45s',
-    },
-    {
-      id: 3,
-      workflow: 'API Integration Test',
-      status: 'completed',
-      time: '15 minutes ago',
-      duration: '1m 12s',
-    },
-    {
-      id: 4,
-      workflow: 'Database Backup',
-      status: 'failed',
-      time: '1 hour ago',
-      duration: '0m 45s',
-    },
-    {
-      id: 5,
-      workflow: 'Report Generation',
-      status: 'completed',
-      time: '2 hours ago',
-      duration: '5m 33s',
-    },
-  ];
-
-  const getStatusTag = (status: string) => {
-    const statusConfig = {
-      completed: { type: 'green' as const, label: 'Completed' },
-      running: { type: 'blue' as const, label: 'Running' },
-      failed: { type: 'red' as const, label: 'Failed' },
-      pending: { type: 'gray' as const, label: 'Pending' },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    return <Tag type={config.type} size="sm">{config.label}</Tag>;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckmarkFilled size={16} style={{ color: 'var(--cds-support-success)' }} />;
-      case 'running':
-        return <Renew size={16} style={{ color: 'var(--cds-support-info)' }} />;
-      case 'failed':
-        return <ErrorFilled size={16} style={{ color: 'var(--cds-support-error)' }} />;
-      default:
-        return <Time size={16} style={{ color: 'var(--cds-support-warning)' }} />;
-    }
-  };
 
   return (
     <div style={{ padding: '2rem' }}>
-      {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2rem', 
-          fontWeight: 600, 
-          marginBottom: '0.5rem',
-          color: 'var(--cds-text-primary)',
-        }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--cds-text-primary)' }}>
           Dashboard
         </h1>
-        <p style={{ 
-          fontSize: '0.875rem', 
-          color: 'var(--cds-text-secondary)',
-        }}>
-          Monitor your workflows and system performance
+        <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+          Real-time security remediation overview
         </p>
       </div>
 
-      {/* Metrics Grid */}
+      {/* KPI Cards */}
       <Grid narrow>
-        {metrics.map((metric, index) => {
-          const Icon = metric.icon;
+        {metricCards.map((card, i) => {
+          const Icon = card.icon;
           return (
-            <Column key={index} sm={4} md={4} lg={4}>
-              <Tile style={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem',
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'flex-start', 
-                  justifyContent: 'space-between',
-                }}>
+            <Column key={i} sm={4} md={4} lg={4}>
+              <Tile style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '8px',
-                    background: `var(--cds-${metric.color}-20)`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    width: '40px', height: '40px', borderRadius: '8px',
+                    background: `var(--cds-${card.color}-20)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Icon size={24} style={{ color: `var(--cds-${metric.color}-60)` }} />
+                    <Icon size={24} style={{ color: `var(--cds-${card.color}-60)` }} />
                   </div>
-                  <Tag 
-                    type={metric.trend === 'up' ? 'green' : 'red'} 
-                    size="sm"
-                  >
-                    {metric.change}
-                  </Tag>
                 </div>
-                
                 <div>
-                  <div style={{ 
-                    fontSize: '2rem', 
-                    fontWeight: 600,
-                    lineHeight: 1.2,
-                    marginBottom: '0.25rem',
-                    color: 'var(--cds-text-primary)',
-                  }}>
-                    {metric.value}
+                  <div style={{ fontSize: '2rem', fontWeight: 600, lineHeight: 1.2, marginBottom: '0.25rem', color: 'var(--cds-text-primary)' }}>
+                    {card.value}
                   </div>
-                  <div style={{ 
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    color: 'var(--cds-text-secondary)',
-                    marginBottom: '0.25rem',
-                  }}>
-                    {metric.title}
+                  <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--cds-text-secondary)', marginBottom: '0.25rem' }}>
+                    {card.title}
                   </div>
-                  <div style={{ 
-                    fontSize: '0.75rem',
-                    color: 'var(--cds-text-secondary)',
-                  }}>
-                    {metric.description}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+                    {card.description}
                   </div>
                 </div>
               </Tile>
@@ -213,183 +170,111 @@ export default function DashboardPage() {
         })}
       </Grid>
 
-      {/* Recent Activity */}
+      {/* Recent Workflows */}
       <div style={{ marginTop: '2rem' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '1rem',
-        }}>
-          <h2 style={{ 
-            fontSize: '1.25rem', 
-            fontWeight: 600,
-            color: 'var(--cds-text-primary)',
-          }}>
-            Recent Activity
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
+            Recent Workflows
           </h2>
-          <Button 
-            kind="ghost" 
-            size="sm"
-            renderIcon={ArrowRight}
-          >
-            View all
-          </Button>
+          <Link href="/workflows">
+            <Button kind="ghost" size="sm" renderIcon={ArrowRight}>View all</Button>
+          </Link>
         </div>
 
-        <Tile>
-          <StructuredListWrapper>
-            <StructuredListHead>
-              <StructuredListRow head>
-                <StructuredListCell head>Workflow</StructuredListCell>
-                <StructuredListCell head>Status</StructuredListCell>
-                <StructuredListCell head>Duration</StructuredListCell>
-                <StructuredListCell head>Time</StructuredListCell>
-              </StructuredListRow>
-            </StructuredListHead>
-            <StructuredListBody>
-              {recentActivity.map((activity) => (
-                <StructuredListRow key={activity.id}>
-                  <StructuredListCell>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.75rem',
-                    }}>
-                      {getStatusIcon(activity.status)}
-                      <span style={{ fontWeight: 500 }}>
-                        {activity.workflow}
-                      </span>
-                    </div>
-                  </StructuredListCell>
-                  <StructuredListCell>
-                    {getStatusTag(activity.status)}
-                  </StructuredListCell>
-                  <StructuredListCell>
-                    <span style={{ 
-                      fontFamily: 'IBM Plex Mono, monospace',
-                      fontSize: '0.875rem',
-                      color: 'var(--cds-text-secondary)',
-                    }}>
-                      {activity.duration}
-                    </span>
-                  </StructuredListCell>
-                  <StructuredListCell>
-                    <span style={{ color: 'var(--cds-text-secondary)' }}>
-                      {activity.time}
-                    </span>
-                  </StructuredListCell>
+        {workflows.length === 0 ? (
+          <Tile>
+            <p style={{ color: 'var(--cds-text-secondary)', padding: '1rem 0' }}>
+              No workflows yet. Trigger one from the <Link href="/workflows/execute">Execute Workflow</Link> page.
+            </p>
+          </Tile>
+        ) : (
+          <Tile>
+            <StructuredListWrapper>
+              <StructuredListHead>
+                <StructuredListRow head>
+                  <StructuredListCell head>Repository</StructuredListCell>
+                  <StructuredListCell head>Status</StructuredListCell>
+                  <StructuredListCell head>Findings</StructuredListCell>
+                  <StructuredListCell head>Duration</StructuredListCell>
+                  <StructuredListCell head>Started</StructuredListCell>
                 </StructuredListRow>
-              ))}
-            </StructuredListBody>
-          </StructuredListWrapper>
-        </Tile>
+              </StructuredListHead>
+              <StructuredListBody>
+                {workflows.map((wf) => {
+                  const tagCfg = STATUS_TAG[wf.status] ?? { type: 'gray' as const, label: wf.status };
+                  return (
+                    <StructuredListRow key={wf.id}>
+                      <StructuredListCell>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          {wf.status === 'completed'
+                            ? <CheckmarkFilled size={16} style={{ color: 'var(--cds-support-success)' }} />
+                            : wf.status === 'running'
+                              ? <Renew size={16} style={{ color: 'var(--cds-support-info)' }} />
+                              : <ErrorFilled size={16} style={{ color: 'var(--cds-support-error)' }} />}
+                          <span style={{ fontWeight: 500 }}>{wf.repo_url.replace('https://github.com/', '')}</span>
+                        </div>
+                      </StructuredListCell>
+                      <StructuredListCell>
+                        <Tag type={tagCfg.type} size="sm">{tagCfg.label}</Tag>
+                      </StructuredListCell>
+                      <StructuredListCell>
+                        <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem' }}>
+                          {wf.total_remediated}/{wf.total_findings}
+                        </span>
+                      </StructuredListCell>
+                      <StructuredListCell>
+                        <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+                          <Time size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                          {formatDuration(wf.started_at, wf.completed_at)}
+                        </span>
+                      </StructuredListCell>
+                      <StructuredListCell>
+                        <span style={{ color: 'var(--cds-text-secondary)' }}>
+                          {timeAgo(wf.started_at)}
+                        </span>
+                      </StructuredListCell>
+                    </StructuredListRow>
+                  );
+                })}
+              </StructuredListBody>
+            </StructuredListWrapper>
+          </Tile>
+        )}
       </div>
 
-      {/* System Health */}
-      <Grid narrow style={{ marginTop: '2rem' }}>
-        <Column sm={4} md={8} lg={8}>
-          <Tile>
-            <h3 style={{ 
-              fontSize: '1rem', 
-              fontWeight: 600,
-              marginBottom: '1.5rem',
-              color: 'var(--cds-text-primary)',
-            }}>
-              System Health
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  marginBottom: '0.5rem',
-                }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                    CPU Usage
-                  </span>
-                  <span style={{ 
-                    fontSize: '0.875rem',
-                    fontFamily: 'IBM Plex Mono, monospace',
-                    color: 'var(--cds-text-secondary)',
-                  }}>
-                    45%
-                  </span>
-                </div>
-                <ProgressBar value={45} label="" />
+      {/* MTTR metric */}
+      {metrics && metrics.avg_mttr_seconds > 0 && (
+        <Grid narrow style={{ marginTop: '2rem' }}>
+          <Column sm={4} md={4} lg={4}>
+            <Tile>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--cds-text-primary)' }}>
+                Avg. MTTR
+              </h3>
+              <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }}>
+                {formatDuration(null, null) === '—'
+                  ? `${Math.round(metrics.avg_mttr_seconds)}s`
+                  : `${Math.floor(metrics.avg_mttr_seconds / 60)}m ${Math.round(metrics.avg_mttr_seconds % 60)}s`}
               </div>
-              
-              <div>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  marginBottom: '0.5rem',
-                }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                    Memory Usage
-                  </span>
-                  <span style={{ 
-                    fontSize: '0.875rem',
-                    fontFamily: 'IBM Plex Mono, monospace',
-                    color: 'var(--cds-text-secondary)',
-                  }}>
-                    68%
-                  </span>
-                </div>
-                <ProgressBar value={68} label="" />
+              <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginTop: '0.25rem' }}>
+                Mean Time to Remediate
               </div>
-              
-              <div>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  marginBottom: '0.5rem',
-                }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                    Storage Usage
-                  </span>
-                  <span style={{ 
-                    fontSize: '0.875rem',
-                    fontFamily: 'IBM Plex Mono, monospace',
-                    color: 'var(--cds-text-secondary)',
-                  }}>
-                    82%
-                  </span>
-                </div>
-                <ProgressBar value={82} label="" />
+            </Tile>
+          </Column>
+          <Column sm={4} md={4} lg={4}>
+            <Tile>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--cds-text-primary)' }}>
+                Total Workflows
+              </h3>
+              <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }}>
+                {metrics.total_workflows}
               </div>
-            </div>
-          </Tile>
-        </Column>
-
-        <Column sm={4} md={8} lg={8}>
-          <Tile>
-            <h3 style={{ 
-              fontSize: '1rem', 
-              fontWeight: 600,
-              marginBottom: '1.5rem',
-              color: 'var(--cds-text-primary)',
-            }}>
-              Quick Actions
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <Button kind="primary" style={{ justifyContent: 'flex-start' }}>
-                Create New Workflow
-              </Button>
-              <Button kind="secondary" style={{ justifyContent: 'flex-start' }}>
-                View All Agents
-              </Button>
-              <Button kind="tertiary" style={{ justifyContent: 'flex-start' }}>
-                System Settings
-              </Button>
-            </div>
-          </Tile>
-        </Column>
-      </Grid>
+              <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginTop: '0.25rem' }}>
+                {metrics.completed_workflows} completed · {metrics.failed_workflows} failed
+              </div>
+            </Tile>
+          </Column>
+        </Grid>
+      )}
     </div>
   );
 }
-
-// Made with Bob

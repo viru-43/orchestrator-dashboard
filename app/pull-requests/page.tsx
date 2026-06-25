@@ -141,18 +141,22 @@ export default function PullRequestsPage() {
               <Table {...getTableProps()}>
                 <TableHead>
                   <TableRow>
-                    {headers.map((header) => (
-                      <TableHeader {...getHeaderProps({ header })} key={header.key}>
-                        {header.header}
-                      </TableHeader>
-                    ))}
+                    {headers.map((header) => {
+                      const { key, ...headerProps } = getHeaderProps({ header });
+                      return (
+                        <TableHeader key={key} {...headerProps}>
+                          {header.header}
+                        </TableHeader>
+                      );
+                    })}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {rows.map((row, index) => {
+                    const { key, ...rowProps } = getRowProps({ row });
                     const pr = mockPRs[index];
                     return (
-                      <TableRow {...getRowProps({ row })} key={row.id}>
+                      <TableRow key={key} {...rowProps}>
                         <TableCell>
                           <div style={{ 
                             display: 'flex', 
