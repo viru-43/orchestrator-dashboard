@@ -157,7 +157,7 @@ export default function WorkflowsPage() {
                     const repoLabel = wf.repo_url.replace('https://github.com/', '');
                     return (
                       <TableRow {...getRowProps({ row })} key={row.id}>
-                        <TableCell>
+                        <TableCell key={`${row.id}-repo`}>
                           <Link
                             href={`/workflows/${wf.id}`}
                             style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}
@@ -181,10 +181,10 @@ export default function WorkflowsPage() {
                             </div>
                           </Link>
                         </TableCell>
-                        <TableCell>
+                        <TableCell key={`${row.id}-branch`}>
                           <Tag type="blue" size="sm">{wf.branch}</Tag>
                         </TableCell>
-                        <TableCell>
+                        <TableCell key={`${row.id}-duration`}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Time size={16} style={{ color: 'var(--cds-text-secondary)' }} />
                             <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem' }}>
@@ -192,7 +192,7 @@ export default function WorkflowsPage() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell key={`${row.id}-vulnerabilities`}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Security size={16} style={{ color: 'var(--cds-text-secondary)' }} />
                             <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem' }}>
@@ -202,7 +202,7 @@ export default function WorkflowsPage() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>{getStatusTag(wf.status)}</TableCell>
+                        <TableCell key={`${row.id}-status`}>{getStatusTag(wf.status)}</TableCell>
                       </TableRow>
                     );
                   })}

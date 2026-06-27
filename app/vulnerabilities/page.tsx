@@ -147,7 +147,7 @@ export default function VulnerabilitiesPage() {
                     const vuln = vulns[index];
                     return (
                       <TableRow {...getRowProps({ row })} key={row.id}>
-                        <TableCell>
+                        <TableCell key={`${row.id}-identifier`}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <div style={{
                               width: '36px', height: '36px', borderRadius: '8px',
@@ -161,15 +161,15 @@ export default function VulnerabilitiesPage() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell key={`${row.id}-package`}>
                           <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem' }}>
                             {vuln.ecosystem === 'code' && vuln.file_path
                               ? `${vuln.file_path}:${vuln.line_number}`
                               : vuln.package}
                           </span>
                         </TableCell>
-                        <TableCell>{getEcosystemTag(vuln.ecosystem)}</TableCell>
-                        <TableCell>{getSeverityTag(vuln.severity)}</TableCell>
+                        <TableCell key={`${row.id}-ecosystem`}>{getEcosystemTag(vuln.ecosystem)}</TableCell>
+                        <TableCell key={`${row.id}-severity`}>{getSeverityTag(vuln.severity)}</TableCell>
                       </TableRow>
                     );
                   })}

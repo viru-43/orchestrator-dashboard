@@ -760,7 +760,7 @@ export default function ScheduledPage() {
                           const wf = history[index];
                           return (
                             <TableRow {...getRowProps({ row })} key={row.id}>
-                              <TableCell>
+                              <TableCell key={`${row.id}-repo`}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                   <div style={{
                                     width: '32px', height: '32px', borderRadius: '6px',
@@ -779,25 +779,25 @@ export default function ScheduledPage() {
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell><Tag type="blue" size="sm">{wf.branch}</Tag></TableCell>
-                              <TableCell>
+                              <TableCell key={`${row.id}-branch`}><Tag type="blue" size="sm">{wf.branch}</Tag></TableCell>
+                              <TableCell key={`${row.id}-started`}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <Time size={16} style={{ color: 'var(--cds-text-secondary)', flexShrink: 0 }} />
                                   <span style={{ fontSize: '0.875rem' }}>{formatAbsolute(wf.started_at)}</span>
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell key={`${row.id}-duration`}>
                                 <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem' }}>
                                   {formatDuration(wf.started_at, wf.completed_at)}
                                 </span>
                               </TableCell>
-                              <TableCell>
+                              <TableCell key={`${row.id}-findings`}>
                                 <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.875rem' }}>
                                   <span style={{ color: 'var(--cds-support-success)' }}>{wf.total_remediated}</span>
                                   <span style={{ color: 'var(--cds-text-secondary)' }}>/{wf.total_findings}</span>
                                 </span>
                               </TableCell>
-                              <TableCell>{getStatusTag(wf.status)}</TableCell>
+                              <TableCell key={`${row.id}-status`}>{getStatusTag(wf.status)}</TableCell>
                             </TableRow>
                           );
                         })}

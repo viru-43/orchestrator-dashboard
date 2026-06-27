@@ -244,3 +244,58 @@ export const getSchedulerHistory = (limit = 50, offset = 0) => {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   return get<SchedulerHistoryResponse>(`/api/scheduler/history?${params}`);
 };
+
+// ── Webhook event types ────────────────────────────────────────────────────
+
+export interface WebhookEvent {
+  id: number;
+  delivery_id: string | null;
+  event_type: string;
+  repo_url: string;
+  repo_name: string;
+  branch: string;
+  commit_sha: string;
+  pusher: string;
+  status: 'accepted' | 'ignored' | 'failed';
+  reason: string | null;
+  workflow_id: string | null;
+  received_at: string | null;
+}
+
+export interface WebhookEventsResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  events: WebhookEvent[];
+}
+
+export interface WebhookStats {
+  total: number;
+  accepted: number;
+  ignored: number;
+  failed: number;
+}
+
+// ── Webhook endpoints ──────────────────────────────────────────────────────
+
+export const getWebhookEvents = (limit = 50, offset = 0, status?: string) => {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (status) params.set('status', status);
+  return get<WebhookEventsResponse>(`/api/webhooks/events?${params}`);
+};
+
+export const getWebhookStats = () =>
+  get<WebhookStats>('/api/webhooks/stats');
+
+export const WEBHOOK_STREAM_URL = `${typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') : ''}/api/webhooks/stream`;
+
+// ── Workflow actions ───────────────────────────────────────────────────────
+
+export interface RerunResponse {
+  status: string;
+  new_workflow_id: string;
+  source_workflow_id: string;
+}
+
+export const rerunWorkflow = (id: string) =>
+  post<RerunResponse>(`/api/workflow/${id}/rerun`);

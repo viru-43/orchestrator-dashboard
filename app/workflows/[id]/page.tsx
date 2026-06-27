@@ -24,6 +24,8 @@ import {
   TableHeader,
   TableBody,
   TableCell,
+  ProgressIndicator,
+  ProgressStep,
 } from '@carbon/react';
 import {
   ArrowLeft,
@@ -38,7 +40,7 @@ import {
   WarningAlt,
 } from '@carbon/icons-react';
 import Link from 'next/link';
-import { getWorkflowById } from '@/lib/api';
+import { getWorkflowById, rerunWorkflow } from '@/lib/api';
 
 // ── Types matching backend serialisers ────────────────────────────────────
 
@@ -143,6 +145,94 @@ const EcoTag = ({ e }: { e: string }) => (
   <Tag type={ECO_TAG[e] ?? 'gray'} size="sm">{e}</Tag>
 );
 
+// ── Agent pipeline inference ──────────────────────────────────────────────
+
+type StepStatus = 'complete' | 'current' | 'incomplete' | 'invalid';
+
+interface PipelineStep {
+  label: string;
+  secondaryLabel: string;
+  status: StepStatus;
+}
+
+function inferPipeline(wf: WorkflowDetail): PipelineStep[] {
+  const running = wf.status === 'running';
+  const failed = wf.status === 'failed';
+  const hasFindings = wf.findings.length > 0;
+  const hasAnalyses = wf.analyses.length > 0;
+  const hasValidations = wf.validations.length > 0;
+  const hasPRs = wf.pull_requests.length > 0;
+  const lastVal = wf.validations[wf.validations.length - 1];
+  const validationPassed = lastVal?.passed ?? false;
+  const noVulns = !running && wf.status === 'completed' && wf.total_findings === 0;
+
+  // Scanner
+  const scannerDone = hasFindings || noVulns;
+  const scannerStatus: StepStatus = scannerDone ? 'complete' : running ? 'current' : failed ? 'invalid' : 'incomplete';
+
+  // Analysis
+  const analysisDone = hasAnalyses || noVulns;
+  const analysisStatus: StepStatus = analysisDone
+    ? 'complete'
+    : scannerDone && running ? 'current'
+    : scannerDone && failed ? 'invalid'
+    : 'incomplete';
+
+  // Remediation
+  const remediationDone = hasValidations || noVulns;
+  const remediationStatus: StepStatus = remediationDone
+    ? 'complete'
+    : analysisDone && running ? 'current'
+    : analysisDone && failed ? 'invalid'
+    : 'incomplete';
+
+  // Validation
+  const validationDone = (hasValidations && validationPassed) || noVulns;
+  const validationInvalid = hasValidations && !validationPassed && !running;
+  const validationStatus: StepStatus = validationDone
+    ? 'complete'
+    : validationInvalid ? 'invalid'
+    : remediationDone && running ? 'current'
+    : 'incomplete';
+
+  // PR
+  const prStatus: StepStatus = hasPRs
+    ? 'complete'
+    : validationDone && running ? 'current'
+    : validationDone && !hasPRs && !running ? 'incomplete'
+    : 'incomplete';
+
+  return [
+    {
+      label: 'Scanner',
+      secondaryLabel: scannerDone && !noVulns ? `${wf.findings.length} finding(s)` : noVulns ? 'Clean' : '',
+      status: scannerStatus,
+    },
+    {
+      label: 'Analysis',
+      secondaryLabel: analysisDone && !noVulns ? `${wf.analyses.length} record(s)` : '',
+      status: analysisStatus,
+    },
+    {
+      label: 'Remediation',
+      secondaryLabel: wf.remediation_attempts > 0 ? `${wf.remediation_attempts} attempt(s)` : '',
+      status: remediationStatus,
+    },
+    {
+      label: 'Validation',
+      secondaryLabel: hasValidations
+        ? validationPassed ? 'Passed' : `Failed (${wf.validations.length} attempt(s))`
+        : '',
+      status: validationStatus,
+    },
+    {
+      label: 'PR Agent',
+      secondaryLabel: hasPRs ? 'PR created' : '',
+      status: prStatus,
+    },
+  ];
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function WorkflowDetailPage() {
@@ -153,6 +243,21 @@ export default function WorkflowDetailPage() {
   const [wf, setWf] = useState<WorkflowDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rerunning, setRerunning] = useState(false);
+  const [rerunError, setRerunError] = useState<string | null>(null);
+
+  const handleRerun = async () => {
+    if (!wf) return;
+    setRerunning(true);
+    setRerunError(null);
+    try {
+      const res = await rerunWorkflow(wf.id);
+      router.push(`/workflows/${res.new_workflow_id}`);
+    } catch (err) {
+      setRerunError(String(err));
+      setRerunning(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -161,6 +266,17 @@ export default function WorkflowDetailPage() {
       .catch((err) => setError(String(err)))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Poll every 3 s while the workflow is still running
+  useEffect(() => {
+    if (!id || !wf || wf.status !== 'running') return;
+    const timer = setInterval(() => {
+      getWorkflowById(id)
+        .then((data) => setWf(data as WorkflowDetail))
+        .catch(() => { /* silent — keep showing last known state */ });
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [id, wf?.status]);
 
   if (loading) return (
     <div style={{ padding: '3rem', display: 'flex', justifyContent: 'center' }}>
@@ -212,7 +328,18 @@ export default function WorkflowDetailPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', flexWrap: 'wrap' }}>
+            {wf.status === 'failed' && (
+              <Button
+                kind="danger--ghost"
+                size="sm"
+                renderIcon={Renew}
+                onClick={handleRerun}
+                disabled={rerunning}
+              >
+                {rerunning ? 'Starting…' : 'Re-run'}
+              </Button>
+            )}
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.25rem' }}>Branch</div>
               <Tag type="blue" size="sm">{wf.branch}</Tag>
@@ -240,6 +367,16 @@ export default function WorkflowDetailPage() {
               {wf.error_message}
             </span>
           </div>
+        )}
+        {rerunError && (
+          <InlineNotification
+            kind="error"
+            title="Re-run failed"
+            subtitle={rerunError}
+            hideCloseButton={false}
+            onCloseButtonClick={() => setRerunError(null)}
+            style={{ marginTop: '0.75rem' }}
+          />
         )}
       </Tile>
 
@@ -273,6 +410,33 @@ export default function WorkflowDetailPage() {
           );
         })}
       </Grid>
+
+      {/* Agent Pipeline */}
+      <Tile style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <InProgress size={20} style={{ color: 'var(--cds-interactive-01)', flexShrink: 0 }} />
+          <span style={{ fontWeight: 600, fontSize: '1rem' }}>Agent Pipeline</span>
+          {wf.status === 'running' && (
+            <InlineLoading description="Running…" style={{ marginLeft: 'auto' }} />
+          )}
+        </div>
+        <ProgressIndicator
+          currentIndex={inferPipeline(wf).findIndex((s) => s.status === 'current')}
+          spaceEqually
+        >
+          {inferPipeline(wf).map((step) => (
+            <ProgressStep
+              key={step.label}
+              label={step.label}
+              secondaryLabel={step.secondaryLabel || undefined}
+              complete={step.status === 'complete'}
+              current={step.status === 'current'}
+              invalid={step.status === 'invalid'}
+              disabled={step.status === 'incomplete'}
+            />
+          ))}
+        </ProgressIndicator>
+      </Tile>
 
       {/* Pull Request */}
       {(wf.pr_url || wf.pull_requests?.length > 0) && (
